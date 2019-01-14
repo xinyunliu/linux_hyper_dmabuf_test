@@ -39,6 +39,9 @@
 #define IMAGE_HEIGHT 1080
 #define IMAGE_BPP 4 /* BYTE PER PIXEL */
 
+#define HYPER_DMABUF_DEV_PATH_LEGACY    "/dev/xen/hyper_dmabuf"
+#define HYPER_DMABUF_DEV_PATH           "/dev/hyper_dmabuf"
+
 enum app_type {
 	EXPORTER = 0x100,
 	IMPORTER = 0x110,
@@ -98,7 +101,7 @@ int exporter_routine(int *importers, int n_importers)
 	int prime;
 	hyper_dmabuf_id_t hid;
 
-	h_fd = open("/dev/xen/hyper_dmabuf", O_RDWR);
+	h_fd = open(HYPER_DMABUF_DEV_PATH, O_RDWR);
 
 	if (h_fd < 0) {
 		printf("Failed to open hyper_dmabuf device\n");
@@ -146,7 +149,7 @@ int importer_routine(int exporter, hyper_dmabuf_id_t hid)
 	int *image_buf, *temp;
 	int ret;
 
-	h_fd = open("/dev/xen/hyper_dmabuf", O_RDWR);
+	h_fd = open(HYPER_DMABUF_DEV_PATH, O_RDWR);
 
 	if (h_fd < 0) {
 		printf("Failed to open hyper_dmabuf device\n");
@@ -196,7 +199,7 @@ int corrupt_attacker_routine(int exporter, hyper_dmabuf_id_t hid)
 	int h_fd;
 	int ret;
 
-	h_fd = open("/dev/xen/hyper_dmabuf", O_RDWR);
+	h_fd = open(HYPER_DMABUF_DEV_PATH, O_RDWR);
 
 	if (h_fd < 0) {
 		printf("Failed to open hyper_dmabuf device\n");
@@ -223,7 +226,7 @@ int false_ioctl_attacker_routine(int iteration)
 	int h_fd;
 	hyper_dmabuf_id_t hid;
 
-	h_fd = open("/dev/xen/hyper_dmabuf", O_RDWR);
+	h_fd = open(HYPER_DMABUF_DEV_PATH, O_RDWR);
 
 	if (h_fd < 0) {
 		printf("Failed to open hyper_dmabuf device\n");
