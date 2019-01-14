@@ -91,6 +91,17 @@ void print_help(enum app_type type)
 	}
 }
 
+int open_hfd()
+{
+	int hyper_dmabuf_fd = open(HYPER_DMABUF_DEV_PATH, O_RDWR);
+
+	/* If failed, try legacy dev path of hyper dmabuf */
+	if (hyper_dmabuf_fd < 0)
+		hyper_dmabuf_fd = open(HYPER_DMABUF_DEV_PATH_LEGACY, O_RDWR);
+
+	return hyper_dmabuf_fd;
+}
+
 static int running = 1;
 
 int exporter_routine(int *importers, int n_importers)
@@ -101,7 +112,7 @@ int exporter_routine(int *importers, int n_importers)
 	int prime;
 	hyper_dmabuf_id_t hid;
 
-	h_fd = open(HYPER_DMABUF_DEV_PATH, O_RDWR);
+	h_fd = open_hfd();
 
 	if (h_fd < 0) {
 		printf("Failed to open hyper_dmabuf device\n");
@@ -149,7 +160,7 @@ int importer_routine(int exporter, hyper_dmabuf_id_t hid)
 	int *image_buf, *temp;
 	int ret;
 
-	h_fd = open(HYPER_DMABUF_DEV_PATH, O_RDWR);
+	h_fd = open_hfd();
 
 	if (h_fd < 0) {
 		printf("Failed to open hyper_dmabuf device\n");
@@ -199,7 +210,7 @@ int corrupt_attacker_routine(int exporter, hyper_dmabuf_id_t hid)
 	int h_fd;
 	int ret;
 
-	h_fd = open(HYPER_DMABUF_DEV_PATH, O_RDWR);
+	h_fd = open_hfd();
 
 	if (h_fd < 0) {
 		printf("Failed to open hyper_dmabuf device\n");
@@ -226,7 +237,7 @@ int false_ioctl_attacker_routine(int iteration)
 	int h_fd;
 	hyper_dmabuf_id_t hid;
 
-	h_fd = open(HYPER_DMABUF_DEV_PATH, O_RDWR);
+	h_fd = open_hfd();
 
 	if (h_fd < 0) {
 		printf("Failed to open hyper_dmabuf device\n");
