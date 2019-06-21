@@ -47,6 +47,7 @@ enum app_type {
 	IMPORTER = 0x110,
 	CORRUPT = 0x120,
 	FALSE_IOCTL  = 0x130,
+	DUMP_RAW = 0x140,
 	INVALID = 0x0
 };
 
@@ -69,6 +70,12 @@ void print_help(enum app_type type)
 			printf("ex) ./hyper_dmabuf_app corrupt 1 8 392874597 3982547 76908456 (run corruption test on hyper_dmabuf)\n");
 			break;
 
+		case DUMP_RAW:
+			printf("./hyper_dmabuf_app dump <domid of exporter> <hid.id> <hid.key[0]> <hid.key[1]> <hid.key[2]> width height bpp\n");
+			printf("ex) ./hyper_dmabuf_app dump 1 8 392874597 3982547 76908456 720 480 12 (run dump test on hyper_dmabuf)\n");
+			break;
+
+
 		case FALSE_IOCTL:
 			printf("./hyper_dmabuf_app false_ioctl <num of iterations>\n");
 			printf("ex) ./hyper_dmabuf_app false_ioctl 100 (run false ioctl test on hyper_dmabuf device)\n");
@@ -88,6 +95,10 @@ void print_help(enum app_type type)
 
 			printf("./hyper_dmabuf_app false_ioctl <num of iterations>\n");
 			printf("ex) ./hyper_dmabuf_app false_ioctl 100 (run false ioctl test on hyper_dmabuf device\n\n");
+
+			printf("./hyper_dmabuf_app dump <domid of exporter> <hid.id> <hid.key[0]> <hid.key[1]> <hid.key[2]> width height bpp\n");
+			printf("ex) ./hyper_dmabuf_app dump 1 8 392874597 3982547 76908456 720 480 12 (run dump test on hyper_dmabuf)\n");
+
 	}
 }
 
@@ -205,6 +216,58 @@ int importer_routine(int exporter, hyper_dmabuf_id_t hid)
 	return 0;
 }
 
+int dump_raw_data_routine(int exporter, hyper_dmabuf_id_t hid, int w, int h, int bpp)
+{
+	int h_fd;
+	int *image_buf;
+	int ret;
+	char fname[100]="hbuf_dmabuf.bin";
+	FILE * pfile = NULL;
+	size_t len;
+
+	h_fd = open_hfd();
+
+	if (h_fd < 0) {
+		printf("Failed to open hyper_dmabuf device\n");
+		return -1;
+	}
+
+	init_importer(h_fd, exporter);
+
+	image_buf = (int*)malloc(w * h * IMAGE_BPP);
+
+	if (!image_buf) {
+		printf("Failed to allocate buffer for imported image\n");
+		close(h_fd);
+		return -1;
+	}
+
+	/* import image */
+	ret = import_bo_from_hbuf(h_fd, hid, w, h, bpp, image_buf);
+
+	close(h_fd);
+
+	if (ret < 0) {
+		printf("Failed to import an image\n");
+		return -1;
+	}
+
+
+	printf("Open %s\n", fname);
+	pfile = fopen(fname, "wb");
+	if(pfile) {
+		/* Get data from start of buffer and print them out */
+		/*  memcpy(out_buf, (int*)bo->virtual, size); */
+		len = fwrite(image_buf, 1, w*h*bpp/8, pfile);
+		fclose(pfile);
+		printf(" dump %ld bytes to %s successed\n", len, fname);
+	} else {
+		printf(" Failed: can't open %s", fname);
+	}
+
+	free(image_buf);
+	return 0;
+}
 int corrupt_attacker_routine(int exporter, hyper_dmabuf_id_t hid)
 {
 	int h_fd;
@@ -278,6 +341,7 @@ int main(int argc, char** argv)
 	hyper_dmabuf_id_t hid;
 	struct sigaction sigint;
 
+	int width,height, bpp;
 	sigint.sa_handler = signal_int;
 	sigemptyset(&sigint.sa_mask);
 	sigint.sa_flags = SA_RESETHAND;
@@ -292,6 +356,9 @@ int main(int argc, char** argv)
 	} else if (strcmp(argv[1], "corrupt") == 0) {
 		type = CORRUPT;
 		min_args = 7;
+	} else if (strcmp(argv[1], "dump") == 0) {
+		type = DUMP_RAW;
+		min_args = 10;
 	} else if (strcmp(argv[1], "false_ioctl") == 0) {
 		type = FALSE_IOCTL;
 		min_args = 2;
@@ -321,6 +388,18 @@ int main(int argc, char** argv)
 		hid.rng_key[2] = strtol(argv[6], NULL, 10);
 		ret = importer_routine(strtol(argv[2], NULL, 10), hid);
 		break;
+
+	case DUMP_RAW:
+		hid.id = strtol(argv[3], NULL, 10);
+		hid.rng_key[0] = strtol(argv[4], NULL, 10);
+		hid.rng_key[1] = strtol(argv[5], NULL, 10);
+		hid.rng_key[2] = strtol(argv[6], NULL, 10);
+		width = strtol(argv[7], NULL, 10);
+		height = strtol(argv[8], NULL, 10);
+		bpp = strtol(argv[9], NULL, 10);
+		ret = dump_raw_data_routine(strtol(argv[2], NULL, 10), hid, width, height, bpp);
+		break;
+
 
 	case CORRUPT:
 		hid.id = strtol(argv[3], NULL, 10);

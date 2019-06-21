@@ -57,7 +57,7 @@ void init_importer(int hyper_dmabuf_fd, int from_domid)
 	msg.source_domain = from_domid;
 
 	if(ioctl(hyper_dmabuf_fd, IOCTL_HYPER_DMABUF_RX_CH_SETUP, &msg)) {
-		printf("%s: ioctl failed\n", __func__);
+		printf("%s: ioctl failed (IOCTL_HYPER_DMABUF_RX_CH_SETUP)\n", __func__);
 		return;
 	}
 	printf("%s: ioctl successful\n", __func__);
@@ -172,9 +172,12 @@ int import_bo_from_hbuf(int hyper_dmabuf_fd, hyper_dmabuf_id_t hid,
 	ssize_t size = width * height * bpp/8;
 
 	msg.hid = hid;
+	printf("%s: hid(%d, %d, %d, %d) w:%d h:%d bpp:%d\n", __func__,
+			hid.id, hid.rng_key[0],hid.rng_key[1], hid.rng_key[2],
+			width, height, bpp);
 
 	if(ioctl(hyper_dmabuf_fd, IOCTL_HYPER_DMABUF_EXPORT_FD, &msg)) {
-		printf("%s: ioctl failed\n", __func__);
+		printf("%s: ioctl failed(IOCTL_HYPER_DMABUF_EXPORT_FD)\n", __func__);
 		return -1;
 	}
 
@@ -204,7 +207,11 @@ int import_bo_from_hbuf(int hyper_dmabuf_fd, hyper_dmabuf_id_t hid,
 
 	/* Get data from start of buffer and print them out */
 	memcpy(out_buf, (int*)bo->virtual, size);
+
 	drm_intel_gem_bo_unmap_gtt(bo);
+	drm_intel_bo_unreference(bo);
+	drm_intel_bufmgr_destroy(bufmgr);
+	drmClose(drm_fd);
 
 	return 0;
 }
